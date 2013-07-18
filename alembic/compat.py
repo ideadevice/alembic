@@ -1,4 +1,5 @@
 import sys
+import os
 
 if sys.version_info < (2, 6):
     raise NotImplementedError("Python 2.6 or greater is required.")
@@ -34,9 +35,27 @@ if py33:
 else:
     import imp
     def load_module(module_id, path):
+        #if both pyc and py files exist, load the py file
+        #otherwise load the appropriate file
+
+        #does our file exist?
+        if os.path.exists(path):
+            #do both .py and .pyc exist? pick up .py then
+            if path.endswith('.pyc') and os.path.exists(path[:-1]):
+                    path = path[:-1]
+        else:
+            #file doesn't exist, but does .pyc exist?
+            if os.path.exists(path+'c'):
+                path = path + 'c'
         fp = open(path, 'rb')
         try:
-            return imp.load_source(module_id, path, fp)
+            #pyc and py use different load methods
+            if path.endswith('.pyc'):
+                module = imp.load_compiled(module_id, path, open(path, 'rb'))
+            else:
+                module = imp.load_source(module_id, path, open(path, 'rb'))
+
+            return module
         finally:
             fp.close()
 

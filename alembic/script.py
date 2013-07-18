@@ -4,8 +4,8 @@ import re
 import shutil
 from . import util
 
-_rev_file = re.compile(r'.*\.py$')
-_legacy_rev = re.compile(r'([a-f0-9]+)\.py$')
+_rev_file = re.compile(r'.*\.p(y|yc)$')
+_legacy_rev = re.compile(r'([a-f0-9]+)\.p(y|yc)$')
 _mod_def_re = re.compile(r'(upgrade|downgrade)_([a-z0-9]+)')
 _slug_re = re.compile(r'\w+')
 _default_file_template = "%(rev)s_%(slug)s"
@@ -204,8 +204,11 @@ class ScriptDirectory(object):
             if script is None:
                 continue
             if script.revision in map_:
-                util.warn("Revision %s is present more than once" %
-                                script.revision)
+                # our changes will return some modules twice,
+                # once for py and once for pyc; ignore duplicate loads
+                # util.warn("Revision %s is present more than once" %
+                #                 script.revision)
+                continue
             map_[script.revision] = script
         for rev in map_.values():
             if rev.down_revision is None:
@@ -449,6 +452,8 @@ class Script(object):
     @classmethod
     def _from_filename(cls, dir_, filename):
         if not _rev_file.match(filename):
+            return None
+        if filename in ('__init__.py', '__init__.pyc'):
             return None
         module = util.load_python_file(dir_, filename)
         if not hasattr(module, "revision"):
